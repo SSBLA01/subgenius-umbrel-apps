@@ -1,0 +1,24 @@
+manifestVersion: 1
+id: subgenius-nomadnet
+category: networking
+name: NomadNet
+version: "1.4.4"
+tagline: SubGenius BBS node, LoRa transport and NomadNet browser
+icon: https://raw.githubusercontent.com/SSBLA01/subgenius-umbrel-apps/main/subgenius-nomadnet/icon.svg
+description: >-
+  Runs the SubGenius BBS as a Nomad Network node on Reticulum, routes between the
+  local LoRa RNode and internet relays, and serves the NomadNet browser in a web page.
+  Pages, identities and Reticulum config live on the host under /home/umbrel.
+releaseNotes: ""
+developer: Mark Qvist
+website: https://github.com/markqvist/NomadNet
+dependencies: []
+repo: https://github.com/markqvist/NomadNet
+support: https://github.com/markqvist/NomadNet/discussions
+port: 7681
+gallery: []
+path: ""
+defaultUsername: umbrel
+deterministicPassword: true
+submitter: SSBLA01
+submission: https://github.com/SSBLA01/subgenius-umbrel-apps
