@@ -1,0 +1,62 @@
+#!/usr/bin/env python3
+"""bbs: open NomadNet with Subgenius_BBS saved at the top of the Nodes list.
+
+Usage:  bbs              open NomadNet (config ~/.nomadnet-client, a browser-only identity)
+        bbs --seed-only  only add Subgenius_BBS to the saved nodes, do not launch
+        BBS_CONFIG=~/somedir bbs
+Never point this at the BBS server's own folder (the one holding its node identity).
+"""
+import os, sys, shutil, subprocess
+
+NODE = bytes.fromhex("0619e039711a1b21b9a1c199753a8c48")
+NAME = "Subgenius_BBS"
+ADDR = "0619e039711a1b21b9a1c199753a8c48:/page/index.mu"
+TRUSTED = 0xFF
+
+cfg = os.path.expanduser(os.environ.get("BBS_CONFIG", "~/.nomadnet-client"))
+seed_only = "--seed-only" in sys.argv
+args = [a for a in sys.argv[1:] if a != "--seed-only"]
+exe = shutil.which("nomadnet") or os.path.expanduser("~/.local/bin/nomadnet")
+if not seed_only and not os.path.exists(exe):
+    sys.exit("nomadnet not found. Install: pip install --user --break-system-packages nomadnet")
+
+# Refuse to touch the directory while a NomadNet using this config is open
+def _running():
+    out = subprocess.run(["ps", "-eo", "args"], capture_output=True, text=True).stdout
+    for line in out.splitlines():
+        a = line.split()
+        if not any(t.endswith("/nomadnet") or t == "nomadnet" for t in a[:2]):
+            continue
+        if "--config" in a and a.index("--config") + 1 < len(a):
+            if os.path.expanduser(a[a.index("--config") + 1]) == cfg:
+                return True
+    return False
+if _running():
+    sys.exit("NomadNet is already running with " + cfg + ". Switch to that window.")
+
+try:
+    import RNS.vendor.umsgpack as msgpack
+except ImportError:
+    sys.exit("Reticulum (rns) python package not importable by this python3.")
+
+path = os.path.join(cfg, "storage", "directory")
+os.makedirs(os.path.dirname(path), exist_ok=True)
+d = {"entry_list": [], "announce_stream": []}
+if os.path.isfile(path):
+    with open(path, "rb") as f:
+        d = msgpack.unpackb(f.read())
+entries = d.get("entry_list", [])
+if not any(bytes(e[0]) == NODE for e in entries):
+    # (hash, name, trust, hosts_node, preferred_delivery, identify, sort_rank, notes)
+    entries.append([NODE, NAME, TRUSTED, True, None, False, 0, "SubGenius BBS on Umbrel"])
+    d["entry_list"] = entries
+    with open(path, "wb") as f:
+        f.write(msgpack.packb(d))
+
+if seed_only:
+    print("Subgenius_BBS is in the saved nodes of " + cfg)
+    sys.exit(0)
+
+print("Opening NomadNet. In the left pane click [ Nodes ], select " + NAME + " and press Enter.")
+print("Or Browser tab, Ctrl+U: " + ADDR)
+os.execv(exe, [exe, "--config", cfg] + args)
