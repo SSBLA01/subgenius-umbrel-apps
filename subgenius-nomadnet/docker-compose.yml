@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  node:
+    image: python:3.13-slim
+    network_mode: host
+    restart: on-failure
+    environment:
+      - PYTHONUNBUFFERED=1
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    command: sh -c "pip install --no-cache-dir nomadnet==1.4.4 && exec nomadnet --config /nomad --rnsconfig /rns --daemon --console"
+    volumes:
+      - /home/umbrel/.nomadnetwork:/nomad
+      - /home/umbrel/.reticulum:/rns
+
+  web:
+    image: python:3.13-slim
+    network_mode: host
+    restart: on-failure
+    depends_on:
+      - node
+    environment:
+      - TERM=xterm-256color
+    command:
+      - sh
+      - -c
+      - |
+        python3 -c 'import urllib.request; urllib.request.urlretrieve("https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.aarch64", "/usr/local/bin/ttyd")'
+        chmod +x /usr/local/bin/ttyd
+        pip install --no-cache-dir nomadnet==1.4.4
+        sleep 30
+        exec ttyd -W -p 7681 -c umbrel:${APP_PASSWORD} nomadnet --config /client --rnsconfig /rns
+    volumes:
+      - /home/umbrel/.nomadnet-client:/client
+      - /home/umbrel/.reticulum:/rns
